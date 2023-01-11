@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>vbatman_evaluation</name>
+  <version>1.0.0</version>
+  <description>The vbatman_evaluation package</description>
+  <maintainer email="ce212083@meiji.ac.jp">Yasunori Hirakawa</maintainer>
+  <license>None</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rospy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>vbatman</depend>
+
+  <export>
+  </export>
+</package>
