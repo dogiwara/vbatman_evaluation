@@ -1,7 +1,7 @@
 import pathlib
+import random
 import sys
 from dataclasses import dataclass
-from random import randint
 from typing import List, Tuple, cast
 
 import cv2
@@ -18,8 +18,9 @@ from modules.topological_map import TopologicalMap
 class Config(BaseConfig):
     evaluating_map_path: str
     grid_map_info_path: str
-    output_path: str
     n_trial: int
+    seed: int = 42
+    show_img: bool = False
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,7 @@ class TopologicalMapEvaluator:
     _config: Config
     _eval_map: TopologicalMap
     _grid_map: GridMap
+    _n_success: int
 
     def __init__(self) -> None:
         self._config = parse_args(Config)
@@ -46,14 +48,16 @@ class TopologicalMapEvaluator:
             resolution=grid_map_info["resolution"],
             origin=grid_map_info["origin"],
         )
+        self._n_success = 0
+        random.seed(self._config.seed)
 
     def __call__(self) -> None:
         for _ in range(self._config.n_trial):
             node_len = len(self._eval_map.nodes)
             source, target = 0, 0
             while source == target:
-                source = randint(0, node_len - 1)
-                target = randint(0, node_len - 1)
+                source = random.randint(0, node_len - 1)
+                target = random.randint(0, node_len - 1)
 
             eval_path = cast(
                 List[int],
@@ -61,24 +65,63 @@ class TopologicalMapEvaluator:
                     self._eval_map.graph, source=source, target=target, weight="weight", method="dijkstra"))
             eval_poses = [
                 self._eval_map.gt_poses[node_id][:2] for node_id in eval_path]
+            if self.is_path_valid(eval_poses):
+                self._n_success += 1
+
+            if not self._config.show_img:
+                continue
             path_image = self.draw_path_on_grid_map(eval_poses)
             cv2.imshow(
                 "path on grid map",
                 cv2.resize(path_image, (path_image.shape[1] // 3, path_image.shape[0] // 3)))
-            cv2.waitKey(0)
+            while cv2.waitKey(1) == -1:
+                pass
+
+        print(f"Success rate: {self._n_success / self._config.n_trial}")
 
     def coordinate_to_pixel(self, x: float, y: float) -> Tuple[int, int]:
         return (int((x - self._grid_map.origin[0]) / self._grid_map.resolution),
-                int((y - self._grid_map.origin[1]) / self._grid_map.resolution))
+                int((- y - self._grid_map.origin[1]) / self._grid_map.resolution))
+
+    def is_path_valid(self, poses: List[Tuple[float, float]]) -> bool:
+        for i in range(len(poses) - 1):
+            start = self.coordinate_to_pixel(*poses[i])
+            end = self.coordinate_to_pixel(*poses[i + 1])
+            if not self.is_line_valid(start, end):
+                return False
+        return True
+
+    def is_line_valid(self, start: Tuple[int, int], end: Tuple[int, int]) -> bool:
+        x1, y1 = start
+        x2, y2 = end
+        dx = abs(x2 - x1)
+        dy = abs(y2 - y1)
+        sx = 1 if x1 < x2 else -1
+        sy = 1 if y1 < y2 else -1
+        err = dx - dy
+
+        while True:
+            if self._grid_map.data[y1, x1] != 254:
+                return False
+            if x1 == x2 and y1 == y2:
+                break
+            e2 = err * 2
+            if e2 > -dy:
+                err -= dy
+                x1 += sx
+            if e2 < dx:
+                err += dx
+                y1 += sy
+        return True
 
     def draw_path_on_grid_map(self, path: List[Tuple[float, float]]) -> np.ndarray:
         map_img = cv2.cvtColor(self._grid_map.data, cv2.COLOR_GRAY2BGR)
         for i in range(len(path)):
             point = self.coordinate_to_pixel(*path[i])
-            cv2.circle(map_img, point, radius=10, color=(0, 255, 0), thickness=-1)
             if i < len(path) - 1:
                 start = point
                 end = self.coordinate_to_pixel(*path[i + 1])
                 cv2.line(map_img, start, end, color=(255, 0, 0), thickness=10)
+            cv2.circle(map_img, point, radius=8, color=(0, 255, 0), thickness=-1)
 
         return map_img
