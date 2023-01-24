@@ -80,8 +80,10 @@ class TopologicalMapEvaluator:
         print(f"Success rate: {self._n_success / self._config.n_trial}")
 
     def coordinate_to_pixel(self, x: float, y: float) -> Tuple[int, int]:
+        map_height = self._grid_map.data.shape[0]
+
         return (int((x - self._grid_map.origin[0]) / self._grid_map.resolution),
-                int((- y - self._grid_map.origin[1]) / self._grid_map.resolution))
+                int(map_height - (y - self._grid_map.origin[1]) / self._grid_map.resolution))
 
     def is_path_valid(self, poses: List[Tuple[float, float]]) -> bool:
         for i in range(len(poses) - 1):
