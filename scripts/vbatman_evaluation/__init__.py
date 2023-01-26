@@ -1,2 +1,4 @@
+from .dummy_path_planner import DummyPathPlanner
+from .localzation_evaluator import LocalizationEvaluator
 from .navigation_evaluator import NavigationEvaluator
 from .topological_map_evaluator import TopologicalMapEvaluator
