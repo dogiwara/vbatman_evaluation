@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum, auto
+from io import TextIOWrapper
 from typing import Dict, List, cast
 
 import numpy as np
@@ -20,7 +21,7 @@ class Config:
     goal_dist_th: float
     sleep_time: float
     timeout: float
-    log_dir: str
+    log_path: str
 
 
 class Status(Enum):
@@ -31,12 +32,13 @@ class Status(Enum):
 class NavigationEvaluator:
     _config: Config
     _cuurent_trial: int
+    _log_file: TextIOWrapper
     _status: Status
     _pose: Pose
     _start_gt_pose: Pose
     _goal_gt_pose: Pose
     _start_time: rospy.Time
-    _results: Dict[str, int]
+    _path_dist: float
     _pose_sub: rospy.Subscriber
     _reset_path_client: rospy.ServiceProxy
     _get_gt_poses_client: rospy.ServiceProxy
@@ -45,17 +47,14 @@ class NavigationEvaluator:
         rospy.init_node("navigation_evaluator")
         self._set_config()
 
-        self._cuurent_trial = 0
+        self._cuurent_trial = len(open(self._config.log_path, "r").readlines())
+        self._log_file = open(self._config.log_path, "a")
         self._status = Status.INITIALIZING
         self._pose = Pose()
         self._start_gt_pose = Pose()
         self._goal_gt_pose = Pose()
         self._start_time = rospy.Time()
-        self._results = {
-            "success": 0,
-            "init_failed": 0,
-            "timeout": 0
-        }
+        self._path_dist = 0.0
 
         self._pose_sub = rospy.Subscriber(
             "/amcl_pose", PoseWithCovarianceStamped, self._pose_callback)
@@ -63,6 +62,9 @@ class NavigationEvaluator:
         self._get_gt_poses_client = rospy.ServiceProxy("/vbatman/get_gt_poses", GetGTPoses)
 
         self.on_initialize_path()
+
+    def __del__(self) -> None:
+        self._log_file.close()
 
     def __call__(self) -> None:
         rospy.Timer(
@@ -85,15 +87,13 @@ class NavigationEvaluator:
         if self._status is Status.INITIALIZING:
             return
         if rospy.Time.now() - self._start_time > rospy.Duration.from_sec(self._config.timeout):
-            self._results["timeout"] += 1
-            rospy.loginfo(self._results)
+            self.write_log(False)
             self.on_initialize_path()
             return
         dist_to_goal = np.linalg.norm(
             get_array_2d_from_msg(calc_relative_pose(self._goal_gt_pose, self._pose))[:2])
         if dist_to_goal < self._config.goal_dist_th:
-            self._results["success"] += 1
-            rospy.loginfo(self._results)
+            self.write_log(True)
             self.on_initialize_path()
             return
 
@@ -105,27 +105,27 @@ class NavigationEvaluator:
         self._status = Status.INITIALIZING
         self._cuurent_trial += 1
         if self._cuurent_trial > self._config.n_trial:
-            self.on_finished()
+            rospy.loginfo("Finished all trials")
+            return
 
         self.request_reset_path(-1)
         gt_poses = cast(List[Pose], self.request_get_gt_poses().gt_poses)
         self._start_gt_pose, self._goal_gt_pose = gt_poses[0], gt_poses[-1]
         dist_to_start = np.linalg.norm(
             get_array_2d_from_msg(calc_relative_pose(self._start_gt_pose, self._pose))[:2])
+        self._path_dist = np.linalg.norm(  # type: ignore
+            get_array_2d_from_msg(calc_relative_pose(self._start_gt_pose, self._goal_gt_pose))[:2])
 
         if dist_to_start > self._config.start_dist_th:
-            self._results["init_failed"] += 1
-            rospy.loginfo(self._results)
+            self.write_log(False)
             rospy.sleep(self._config.sleep_time)
             self.on_initialize_path()
         else:
             self._status = Status.RUNNING
 
-    def on_finished(self) -> None:
-        rospy.loginfo(f"NavigationEvaluator finished: {self._results}")
-        log_file = datetime.now().strftime("%Y%m%d_%H%M.json")
-        with open(f"{self._config.log_dir}/{log_file}", "w") as f:
-            json.dump(self._results, f)
+    def write_log(self, success: bool) -> None:
+        rospy.loginfo(f"Trial #{self._cuurent_trial}: dist={self._path_dist}, success={success}")
+        self._log_file.write(f"{self._path_dist}, {success}")
 
     def request_reset_path(self, target_id: int) -> ResetPathResponse:
         rospy.wait_for_service("/vbatman/reset_path")
