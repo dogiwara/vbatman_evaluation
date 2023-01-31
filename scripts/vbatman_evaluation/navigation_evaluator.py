@@ -47,6 +47,8 @@ class NavigationEvaluator:
         self._set_config()
 
         log_path = pathlib.Path(self._config.log_path)
+        if not log_path.parent.exists():
+            log_path.parent.mkdir(parents=True)
         if not log_path.exists():
             log_path.touch()
 
