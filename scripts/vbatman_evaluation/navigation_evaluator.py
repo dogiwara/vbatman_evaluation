@@ -130,7 +130,7 @@ class NavigationEvaluator:
 
     def write_log(self, success: bool) -> None:
         rospy.loginfo(f"Trial #{self._cuurent_trial}: dist={self._path_dist}, success={success}")
-        self._log_file.write(f"{self._path_dist}, {success}")
+        self._log_file.write(f"{self._path_dist}, {success}\n")
 
     def request_reset_path(self, target_id: int) -> ResetPathResponse:
         rospy.wait_for_service("/vbatman/reset_path")
