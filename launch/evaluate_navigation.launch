@@ -1,0 +1,13 @@
+<launch>
+    <node pkg="vbatman_evaluation" type="navigation_evaluator_node.py" name="navigation_evaluator_node" ns="vbatman_evaluation" output="screen">
+        <rosparam>
+            hz: 15
+            n_trial: 100
+            start_dist_th: 3.0
+            goal_dist_th: 3.0
+            sleep_time: 10
+            timeout: 180
+            log_path: /home/amsl/data/vbatman_evaluation/navigation/log.csv
+        </rosparam>
+    </node>
+</launch>

@@ -80,7 +80,7 @@ class NavigationEvaluator:
             rospy.get_param("~goal_dist_th", 3.0),
             rospy.get_param("~sleep_time", 10),
             rospy.get_param("~timeout", 180),
-            rospy.get_param("~log_dir", "/tmp")
+            rospy.get_param("~log_path", "/tmp")
         )
 
     def _timer_callback(self, _) -> None:
