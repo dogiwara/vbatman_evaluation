@@ -1,9 +1,8 @@
-import json
+import pathlib
 from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum, auto
 from io import TextIOWrapper
-from typing import Dict, List, cast
+from typing import List, cast
 
 import numpy as np
 import rospy
@@ -47,8 +46,12 @@ class NavigationEvaluator:
         rospy.init_node("navigation_evaluator")
         self._set_config()
 
-        self._cuurent_trial = len(open(self._config.log_path, "r").readlines())
-        self._log_file = open(self._config.log_path, "a")
+        log_path = pathlib.Path(self._config.log_path)
+        if not log_path.exists():
+            log_path.touch()
+
+        self._cuurent_trial = len(log_path.open("r").readlines())
+        self._log_file = log_path.open("a")
         self._status = Status.INITIALIZING
         self._pose = Pose()
         self._start_gt_pose = Pose()
