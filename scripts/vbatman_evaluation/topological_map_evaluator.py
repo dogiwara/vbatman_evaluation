@@ -18,9 +18,12 @@ from modules.topological_map import TopologicalMap
 class Config(BaseConfig):
     evaluating_map_path: str
     grid_map_info_path: str
+    transform: str
     n_trial: int
+    img_dir: str = "/tmp/map_evaluator"
     seed: int = 42
     show_img: bool = False
+    save_img: bool = False
 
 
 @dataclass(frozen=True)
@@ -49,10 +52,13 @@ class TopologicalMapEvaluator:
             origin=grid_map_info["origin"],
         )
         self._n_success = 0
+
         random.seed(self._config.seed)
+        if self._config.save_img:
+            pathlib.Path(self._config.img_dir).mkdir(parents=True, exist_ok=True)
 
     def __call__(self) -> None:
-        for _ in range(self._config.n_trial):
+        for i in range(self._config.n_trial):
             node_len = len(self._eval_map.nodes)
             source, target = 0, 0
             while source == target:
@@ -65,17 +71,19 @@ class TopologicalMapEvaluator:
                     self._eval_map.graph, source=source, target=target, weight="weight", method="dijkstra"))
             eval_poses = [
                 self._eval_map.gt_poses[node_id][:2] for node_id in eval_path]
-            if self.is_path_valid(eval_poses):
+            is_success = self.is_path_valid(eval_poses)
+            if is_success:
                 self._n_success += 1
 
-            if not self._config.show_img:
+            if not self._config.show_img and not self._config.save_img:
                 continue
-            path_image = self.draw_path_on_grid_map(eval_poses)
-            cv2.imshow(
-                "path on grid map",
-                cv2.resize(path_image, (path_image.shape[1] // 3, path_image.shape[0] // 3)))
-            while cv2.waitKey(1) == -1:
-                pass
+            path_image = eval(f"self.transform_{self._config.transform}")(eval_poses)  # Call transform method from given name
+            if self._config.save_img:
+                cv2.imwrite(f"{self._config.img_dir}/{i}_{is_success}.png", path_image)
+            if self._config.show_img:
+                cv2.imshow("path on grid map", path_image)
+                while cv2.waitKey(1) == -1:
+                    pass
 
         print(f"Success rate: {self._n_success / self._config.n_trial}")
 
@@ -127,3 +135,19 @@ class TopologicalMapEvaluator:
             cv2.circle(map_img, point, radius=8, color=(0, 255, 0), thickness=-1)
 
         return map_img
+
+    def transform_dkan(self, eval_poses: List[Tuple[float, float]]) -> np.ndarray:
+        path_image = self.draw_path_on_grid_map(eval_poses)[550 * 3:780 * 3, 430 * 3:900 * 3, :]
+
+        return path_image
+
+    def transform_dkan2f(self, eval_poses: List[Tuple[float, float]]) -> np.ndarray:
+        path_image = self.draw_path_on_grid_map(eval_poses)
+        trans = cv2.getRotationMatrix2D((path_image.shape[1] // 2, path_image.shape[0] // 2), -1.5, 1)
+        path_image = cv2.warpAffine(
+            path_image,
+            trans,
+            (path_image.shape[1], path_image.shape[0]))[
+            600 * 3:830 * 3, 430 * 3:900 * 3, :]
+
+        return path_image
