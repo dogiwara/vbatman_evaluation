@@ -23,7 +23,7 @@
         </rosparam>
     </node>
     <node pkg="vbatman" name="relative_pose_estimator" ns="vbatman" type="relative_pose_estimator_node.py" output="screen">
-        <param name="relposnet_path" value="/home/amsl/hornet/vbatman/torch_scripts/relposnet_dkan2f_eval.pt"/>
+        <param name="relposnet_path" value="/home/amsl/hornet/vbatman/torch_scripts/relposnet_dkan2f_finetune_eval.pt"/>
         <remap from="/camera/color/image_raw/compressed" to="/equirectangular/image_raw/compressed"/>
     </node>
     <node pkg="vbatman" name="localizer" ns="vbatman" type="localizer_node" output="screen">
