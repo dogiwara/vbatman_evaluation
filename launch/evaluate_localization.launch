@@ -2,10 +2,14 @@
     <rosparam command="load" file="$(find vbatman)/config/vbatman.yaml" ns="vbatman"/>
 
     <node pkg="vbatman_evaluation" type="localization_evaluator_node.py"
-          name="localization_evaluator_node" ns="vbatman_evaluation" output="screen"/>
+          name="localization_evaluator_node" ns="vbatman_evaluation" output="screen">
+        <rosparam>
+            save_dir: /tmp/localization_eval/dkan2f
+        </rosparam>
+    </node>
     <node pkg="vbatman_evaluation" type="dummy_path_planner_server.py" name="dummy_path_planner_server" ns="vbatman" output="screen">
         <rosparam>
-            bagfile_path: /home/amsl/hornet/vbatman/bagfiles/localization_eval/for_mapping.bag
+            bagfile_path: /home/amsl/hornet/vbatman/bagfiles/localization_eval/dkan2f_mapping.bag
             image_topic_name: /equirectangular/image_raw/compressed
             pose_topic_name: /amcl_pose
             interval_r: 1.0
@@ -19,14 +23,17 @@
         </rosparam>
     </node>
     <node pkg="vbatman" name="relative_pose_estimator" ns="vbatman" type="relative_pose_estimator_node.py" output="screen">
-        <param name="relposnet_path" value="/home/amsl/hornet/vbatman/torch_scripts/relposnet.pt"/>
+        <param name="relposnet_path" value="/home/amsl/hornet/vbatman/torch_scripts/relposnet_dkan2f_eval.pt"/>
         <remap from="/camera/color/image_raw/compressed" to="/equirectangular/image_raw/compressed"/>
     </node>
     <node pkg="vbatman" name="localizer" ns="vbatman" type="localizer_node" output="screen">
         <rosparam>
-            init_x: -2.38
-            init_y: 7.12
-            init_yaw: -3.12
+            # init_x: -2.38
+            # init_y: 7.12
+            # init_yaw: -3.12
+            init_x: 0
+            init_y: 0
+            init_yaw: 0
         </rosparam>
         <remap from="/odom" to="/whill/odom"/>
     </node>
