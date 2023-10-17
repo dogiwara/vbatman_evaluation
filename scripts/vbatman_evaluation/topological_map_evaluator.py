@@ -151,3 +151,14 @@ class TopologicalMapEvaluator:
             600 * 3:830 * 3, 430 * 3:900 * 3, :]
 
         return path_image
+
+    def transform_dkan_around(self, eval_poses: List[Tuple[float, float]]) -> np.ndarray:
+        path_image = self.draw_path_on_grid_map(eval_poses)[1650:3150, 3500:5300, :]
+        # trans = cv2.getRotationMatrix2D((path_image.shape[1] // 2, path_image.shape[0] // 2), 0, 1)
+        # path_image = cv2.warpAffine(
+        #     path_image,
+        #     trans,
+        #     (path_image.shape[1], path_image.shape[0]))[1650:3150, 3500:5300, :]
+        path_image = cv2.resize(path_image, None, None, 0.4, 0.4)
+
+        return path_image

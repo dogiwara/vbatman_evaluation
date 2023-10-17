@@ -1,3 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
 <launch>
     <node pkg="vbatman_evaluation" type="navigation_evaluator_node.py" name="navigation_evaluator_node" ns="vbatman_evaluation" output="screen">
         <rosparam>
