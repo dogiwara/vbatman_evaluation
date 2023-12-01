@@ -2,3 +2,5 @@ from .dummy_path_planner import DummyPathPlanner
 from .localzation_evaluator import LocalizationEvaluator
 from .navigation_evaluator import NavigationEvaluator
 from .topological_map_evaluator import TopologicalMapEvaluator
+from .feature_visualizer import FeatureVisualizer
+from .closest_feature_finder import ClosestFeatureFinder

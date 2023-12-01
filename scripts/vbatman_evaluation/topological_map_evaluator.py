@@ -59,7 +59,7 @@ class TopologicalMapEvaluator:
 
     def __call__(self) -> None:
         for i in range(self._config.n_trial):
-            node_len = len(self._eval_map.nodes)
+            node_len = len(self._eval_map.features)
             source, target = 0, 0
             while source == target:
                 source = random.randint(0, node_len - 1)
