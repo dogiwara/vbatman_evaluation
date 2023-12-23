@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import networkx as nx
 import numpy as np
@@ -13,7 +13,6 @@ class Config(BaseConfig):
     topological_map_path: str
     positive_nodes: List[int]
     negative_nodes: List[int]
-    seed: int = 42
 
 class ClosestFeatureFinder:
     _config: Config

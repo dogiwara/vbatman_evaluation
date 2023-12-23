@@ -12,7 +12,7 @@ from smartargparse import BaseConfig, parse_args
 
 sys.path.append("/home/amsl/catkin_ws/src/vbatman/vbatman/scripts")
 from modules.topological_map import TopologicalMap
-
+import torch.nn.functional as F
 
 @dataclass(frozen=True)
 class Config(BaseConfig):
@@ -42,6 +42,10 @@ class TopologicalMapEvaluator:
     def __init__(self) -> None:
         self._config = parse_args(Config)
         self._eval_map = TopologicalMap.load(self._config.evaluating_map_path)
+
+        for i, feature in enumerate(self._eval_map.summalize_features):
+                print(f"{i}: {F.cosine_similarity(self._eval_map.summalize_features[0], feature, dim=0).item()}")
+
         with open(self._config.grid_map_info_path, "r") as f:
             grid_map_info = yaml.safe_load(f)
         self._grid_map = GridMap(
@@ -132,7 +136,12 @@ class TopologicalMapEvaluator:
                 start = point
                 end = self.coordinate_to_pixel(*path[i + 1])
                 cv2.line(map_img, start, end, color=(255, 0, 0), thickness=10)
-            cv2.circle(map_img, point, radius=8, color=(0, 255, 0), thickness=-1)
+            if i == 0:
+                cv2.circle(map_img, point, radius=12, color=(0, 155, 255), thickness=-1)
+            elif i == len(path) - 1:
+                cv2.circle(map_img, point, radius=12, color=(0, 0, 255), thickness=-1)
+            else:
+                cv2.circle(map_img, point, radius=8, color=(0, 255, 0), thickness=-1)
 
         return map_img
 
@@ -154,11 +163,6 @@ class TopologicalMapEvaluator:
 
     def transform_dkan_around(self, eval_poses: List[Tuple[float, float]]) -> np.ndarray:
         path_image = self.draw_path_on_grid_map(eval_poses)[1650:3150, 3500:5300, :]
-        # trans = cv2.getRotationMatrix2D((path_image.shape[1] // 2, path_image.shape[0] // 2), 0, 1)
-        # path_image = cv2.warpAffine(
-        #     path_image,
-        #     trans,
-        #     (path_image.shape[1], path_image.shape[0]))[1650:3150, 3500:5300, :]
         path_image = cv2.resize(path_image, None, None, 0.4, 0.4)
 
         return path_image
